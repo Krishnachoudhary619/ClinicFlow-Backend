@@ -10,4 +10,11 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
             Token.Status status);
 
     List<Token> findByClinicDayIdOrderByTokenNumberAsc(Long clinicDayId);
+
+    @org.springframework.data.jpa.repository.Query("""
+                SELECT COALESCE(MAX(t.tokenNumber), 0)
+                FROM Token t
+                WHERE t.clinicDay.id = :clinicDayId
+            """)
+    Integer findLastTokenNumber(Long clinicDayId);
 }
