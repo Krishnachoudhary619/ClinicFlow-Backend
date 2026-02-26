@@ -124,4 +124,35 @@ public class QueueService {
                 // 3️⃣ Return updated queue
                 return getCurrentQueue();
         }
+
+        public PublicTokenStatusResponse getPublicTokenStatus(Long clinicId, Integer tokenNumber) {
+
+                LocalDate today = LocalDate.now();
+
+                ClinicDay clinicDay = clinicDayRepository
+                                .findByClinicIdAndDate(clinicId, today)
+                                .orElseThrow(() -> new ApiException("Clinic not active today", "QUEUE_002"));
+
+                Token token = tokenRepository
+                                .findTodayToken(clinicId, tokenNumber)
+                                .orElseThrow(() -> new ApiException("Token not found", "TOKEN_001"));
+
+                Integer currentServing = tokenRepository
+                                .findCurrentCalled(clinicDay.getId())
+                                .map(Token::getTokenNumber)
+                                .orElse(null);
+
+                Long patientsAhead = tokenRepository.countPatientsAhead(clinicDay.getId(), tokenNumber);
+
+                // Simple static estimate: 5 minutes per patient
+                int estimatedWait = patientsAhead.intValue() * 5;
+
+                return PublicTokenStatusResponse.builder()
+                                .tokenNumber(token.getTokenNumber())
+                                .status(token.getStatus().name())
+                                .currentServing(currentServing)
+                                .patientsAhead(patientsAhead.intValue())
+                                .estimatedWaitMinutes(estimatedWait)
+                                .build();
+        }
 }
