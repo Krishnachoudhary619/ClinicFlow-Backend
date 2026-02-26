@@ -34,4 +34,15 @@ public class QueueController {
                 "Queue fetched successfully",
                 response);
     }
+
+    @PostMapping("/serve-next")
+    @PreAuthorize("hasAnyRole('DOCTOR','RECEPTIONIST','ADMIN')")
+    public ApiResponse<QueueResponse> serveNext() {
+
+        QueueResponse response = queueService.markCurrentAsServed();
+
+        return ApiResponse.success(
+                "Token served and next called",
+                response);
+    }
 }
