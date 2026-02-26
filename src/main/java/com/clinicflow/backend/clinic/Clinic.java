@@ -22,5 +22,6 @@ public class Clinic extends BaseEntity {
     private String city;
     private String phoneNumber;
 
+    @Builder.Default
     private Boolean isActive = true;
 }

@@ -25,5 +25,6 @@ public class ClinicDay extends BaseEntity {
 
     private LocalDate date;
 
+    @Builder.Default
     private Boolean isClosed = false;
 }

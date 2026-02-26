@@ -28,6 +28,7 @@ public class RefreshToken extends BaseEntity {
 
     private LocalDateTime expiresAt;
 
+    @Builder.Default
     private Boolean revoked = false;
 
     private String ipAddress;
