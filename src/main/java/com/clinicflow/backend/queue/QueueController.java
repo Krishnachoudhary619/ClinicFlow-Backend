@@ -14,14 +14,20 @@ public class QueueController {
 
     @PostMapping("/token")
     @PreAuthorize("hasAnyRole('RECEPTIONIST','ADMIN')")
-    public ApiResponse<Token> generateToken(
+    public ApiResponse<TokenResponse> generateToken(
             @RequestBody CreateTokenRequest request) {
 
         Token token = queueService.createToken(request);
 
+        TokenResponse response = TokenResponse.builder()
+                .tokenId(token.getId())
+                .tokenNumber(token.getTokenNumber())
+                .cycleNumber(token.getCycleNumber())
+                .build();
+
         return ApiResponse.success(
                 "Token generated successfully",
-                token);
+                response);
     }
 
     @GetMapping("/current")
@@ -55,5 +61,23 @@ public class QueueController {
         return ApiResponse.success(
                 "Token skipped successfully",
                 response);
+    }
+
+    @PostMapping("/reset")
+    @PreAuthorize("hasAnyRole('DOCTOR','RECEPTIONIST','ADMIN')")
+    public ApiResponse<String> resetTokens() {
+
+        String message = queueService.resetTokens();
+
+        return ApiResponse.success(message, null);
+    }
+
+    @PostMapping("/start-new-day")
+    @PreAuthorize("hasAnyRole('DOCTOR','RECEPTIONIST','ADMIN')")
+    public ApiResponse<String> startNewDay() {
+
+        String message = queueService.startNewDay();
+
+        return ApiResponse.success(message, null);
     }
 }

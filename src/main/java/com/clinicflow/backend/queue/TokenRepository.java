@@ -17,54 +17,52 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
                 SELECT COALESCE(MAX(t.tokenNumber), 0)
                 FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
+                AND t.cycleNumber = :cycleNumber
             """)
-    Integer findLastTokenNumber(Long clinicDayId);
+    Integer findLastTokenNumber(Long clinicDayId, Integer cycleNumber);
 
     @Query("""
                 SELECT t FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
+                AND t.cycleNumber = :cycleNumber
                 AND t.status = com.clinicflow.backend.queue.Token$Status.WAITING
                 ORDER BY t.tokenNumber ASC
             """)
-    List<Token> findNextWaiting(Long clinicDayId);
+    List<Token> findWaitingTokens(Long clinicDayId, Integer cycleNumber);
 
     @Query("""
                 SELECT t FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
+                AND t.cycleNumber = :cycleNumber
                 AND t.status = com.clinicflow.backend.queue.Token$Status.CALLED
             """)
-    Optional<Token> findCurrentCalled(Long clinicDayId);
+    Optional<Token> findCurrentCalled(Long clinicDayId, Integer cycleNumber);
 
     @Query("""
                 SELECT COUNT(t)
                 FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
+                AND t.cycleNumber = :cycleNumber
                 AND t.status = com.clinicflow.backend.queue.Token$Status.WAITING
                 AND t.tokenNumber < :tokenNumber
             """)
-    Long countPatientsAhead(Long clinicDayId, Integer tokenNumber);
+    Long countPatientsAhead(Long clinicDayId, Integer cycleNumber, Integer tokenNumber);
 
     @Query("""
                 SELECT t FROM Token t
                 WHERE t.clinic.id = :clinicId
                 AND t.clinicDay.date = CURRENT_DATE
+                AND t.cycleNumber = :cycleNumber
                 AND t.tokenNumber = :tokenNumber
             """)
-    Optional<Token> findTodayToken(Long clinicId, Integer tokenNumber);
+    Optional<Token> findTodayToken(Long clinicId, Integer cycleNumber, Integer tokenNumber);
 
     @Query("""
                 SELECT t FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
-                AND t.status = com.clinicflow.backend.queue.Token$Status.WAITING
-                ORDER BY t.tokenNumber ASC
-            """)
-    List<Token> findWaitingTokensOrdered(Long clinicDayId);
-
-    @Query("""
-                SELECT t FROM Token t
-                WHERE t.clinicDay.id = :clinicDayId
+                AND t.cycleNumber = :cycleNumber
                 AND t.status = com.clinicflow.backend.queue.Token$Status.DELAYED
                 ORDER BY t.tokenNumber ASC
             """)
-    List<Token> findDelayedTokensOrdered(Long clinicDayId);
+    List<Token> findDelayedTokensOrdered(Long clinicDayId, Integer cycleNumber);
 }

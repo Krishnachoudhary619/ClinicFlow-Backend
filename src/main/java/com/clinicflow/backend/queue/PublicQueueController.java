@@ -5,18 +5,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/public/queue")
+@RequestMapping("/api/public")
 @RequiredArgsConstructor
 public class PublicQueueController {
 
     private final QueueService queueService;
 
-    @GetMapping("/{clinicId}/{tokenNumber}")
+    @GetMapping("/token/{tokenId}")
     public ApiResponse<PublicTokenStatusResponse> getTokenStatus(
-            @PathVariable Long clinicId,
-            @PathVariable Integer tokenNumber) {
+            @PathVariable Long tokenId) {
 
-        PublicTokenStatusResponse response = queueService.getPublicTokenStatus(clinicId, tokenNumber);
+        PublicTokenStatusResponse response = queueService.getPublicTokenStatus(tokenId);
 
         return ApiResponse.success(
                 "Token status fetched",

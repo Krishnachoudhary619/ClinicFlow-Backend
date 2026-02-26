@@ -27,4 +27,8 @@ public class ClinicDay extends BaseEntity {
 
     @Builder.Default
     private Boolean isClosed = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer currentCycle = 1;
 }

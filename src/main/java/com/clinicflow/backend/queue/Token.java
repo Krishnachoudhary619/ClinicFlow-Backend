@@ -7,7 +7,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tokens")
+@Table(name = "tokens", uniqueConstraints = @UniqueConstraint(columnNames = { "clinic_day_id", "cycle_number",
+        "token_number" }))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +27,9 @@ public class Token extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "clinic_day_id", nullable = false)
     private ClinicDay clinicDay;
+
+    @Column(name = "cycle_number", nullable = false)
+    private Integer cycleNumber;
 
     private Integer tokenNumber;
 
