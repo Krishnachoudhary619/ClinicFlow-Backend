@@ -45,4 +45,15 @@ public class QueueController {
                 "Token served and next called",
                 response);
     }
+
+    @PostMapping("/skip")
+    @PreAuthorize("hasAnyRole('DOCTOR','RECEPTIONIST','ADMIN')")
+    public ApiResponse<QueueResponse> skipToken() {
+
+        QueueResponse response = queueService.skipCurrentToken();
+
+        return ApiResponse.success(
+                "Token skipped successfully",
+                response);
+    }
 }

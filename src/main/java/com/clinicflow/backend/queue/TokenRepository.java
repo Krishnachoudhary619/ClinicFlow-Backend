@@ -51,4 +51,20 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
                 AND t.tokenNumber = :tokenNumber
             """)
     Optional<Token> findTodayToken(Long clinicId, Integer tokenNumber);
+
+    @Query("""
+                SELECT t FROM Token t
+                WHERE t.clinicDay.id = :clinicDayId
+                AND t.status = com.clinicflow.backend.queue.Token$Status.WAITING
+                ORDER BY t.tokenNumber ASC
+            """)
+    List<Token> findWaitingTokensOrdered(Long clinicDayId);
+
+    @Query("""
+                SELECT t FROM Token t
+                WHERE t.clinicDay.id = :clinicDayId
+                AND t.status = com.clinicflow.backend.queue.Token$Status.DELAYED
+                ORDER BY t.tokenNumber ASC
+            """)
+    List<Token> findDelayedTokensOrdered(Long clinicDayId);
 }

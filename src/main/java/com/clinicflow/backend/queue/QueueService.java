@@ -79,7 +79,7 @@ public class QueueService {
                 Token current = tokenRepository.findCurrentCalled(clinicDay.getId())
                                 .orElse(null);
 
-                List<Token> waiting = tokenRepository.findNextWaiting(clinicDay.getId());
+                List<Token> waiting = tokenRepository.findWaitingTokensOrdered(clinicDay.getId());
 
                 return QueueResponse.builder()
                                 .currentServing(current)
@@ -113,7 +113,7 @@ public class QueueService {
                 }
 
                 // 2️⃣ Get next WAITING token
-                List<Token> waiting = tokenRepository.findNextWaiting(clinicDay.getId());
+                List<Token> waiting = tokenRepository.findWaitingTokensOrdered(clinicDay.getId());
 
                 if (!waiting.isEmpty()) {
                         Token next = waiting.get(0);
@@ -154,5 +154,43 @@ public class QueueService {
                                 .patientsAhead(patientsAhead.intValue())
                                 .estimatedWaitMinutes(estimatedWait)
                                 .build();
+        }
+
+        @Transactional
+        public QueueResponse skipCurrentToken() {
+
+                UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext()
+                                .getAuthentication().getPrincipal();
+
+                Long clinicId = principal.getClinicId();
+                LocalDate today = LocalDate.now();
+
+                ClinicDay clinicDay = clinicDayRepository
+                                .findByClinicIdAndDate(clinicId, today)
+                                .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
+
+                // 1️⃣ Find current CALLED token
+                Optional<Token> currentCalledOpt = tokenRepository.findCurrentCalled(clinicDay.getId());
+
+                if (currentCalledOpt.isEmpty()) {
+                        throw new ApiException("No token is currently being served", "QUEUE_002");
+                }
+
+                Token current = currentCalledOpt.get();
+
+                // 2️⃣ Move it to DELAYED
+                current.setStatus(Token.Status.DELAYED);
+                tokenRepository.save(current);
+
+                // 3️⃣ Find next WAITING token
+                List<Token> waiting = tokenRepository.findWaitingTokensOrdered(clinicDay.getId());
+
+                if (!waiting.isEmpty()) {
+                        Token next = waiting.get(0);
+                        next.setStatus(Token.Status.CALLED);
+                        tokenRepository.save(next);
+                }
+
+                return getCurrentQueue();
         }
 }
