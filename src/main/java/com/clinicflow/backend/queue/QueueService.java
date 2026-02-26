@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -58,5 +59,30 @@ public class QueueService {
                                 .build();
 
                 return tokenRepository.save(token);
+        }
+
+        public QueueResponse getCurrentQueue() {
+
+                UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext()
+                                .getAuthentication().getPrincipal();
+
+                Long clinicId = principal.getClinicId();
+
+                LocalDate today = LocalDate.now();
+
+                ClinicDay clinicDay = clinicDayRepository
+                                .findByClinicIdAndDate(clinicId, today)
+                                .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
+
+                Token current = tokenRepository.findCurrentServing(clinicDay.getId())
+                                .orElse(null);
+
+                List<Token> waiting = tokenRepository.findWaitingTokens(clinicDay.getId());
+
+                return QueueResponse.builder()
+                                .currentServing(current)
+                                .waitingCount(waiting.size())
+                                .waitingTokens(waiting)
+                                .build();
         }
 }

@@ -23,4 +23,15 @@ public class QueueController {
                 "Token generated successfully",
                 token);
     }
+
+    @GetMapping("/current")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST','DOCTOR','ADMIN')")
+    public ApiResponse<QueueResponse> getQueue() {
+
+        QueueResponse response = queueService.getCurrentQueue();
+
+        return ApiResponse.success(
+                "Queue fetched successfully",
+                response);
+    }
 }
