@@ -73,39 +73,39 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
     @Query("""
                 SELECT
                     COUNT(t),
-                    SUM(CASE WHEN t.status = 'SERVED' THEN 1 ELSE 0 END),
-                    SUM(CASE WHEN t.status = 'DELAYED' THEN 1 ELSE 0 END),
-                    AVG(
+                    COALESCE(SUM(CASE WHEN t.status = 'SERVED' THEN 1 ELSE 0 END), 0),
+                    COALESCE(SUM(CASE WHEN t.status = 'DELAYED' THEN 1 ELSE 0 END), 0),
+                    COALESCE(AVG(
                         CASE
                             WHEN t.servedAt IS NOT NULL
-                            THEN CAST(FUNCTION('TIMESTAMPDIFF', MINUTE, t.createdAt, t.servedAt) AS double)
+                            THEN CAST(timestampdiff(MINUTE, t.createdAt, t.servedAt) AS double)
                         END
-                    )
+                    ), 0.0)
                 FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
             """)
-    Object[] getTodayAnalytics(@Param("clinicDayId") Long clinicDayId);
+    List<Object[]> getTodayAnalytics(@Param("clinicDayId") Long clinicDayId);
 
     @Query("""
                 SELECT
-                    FUNCTION('HOUR', t.createdAt),
+                    hour(t.createdAt),
                     COUNT(t)
                 FROM Token t
-                WHERE DATE(t.createdAt) = :date
-                GROUP BY FUNCTION('HOUR', t.createdAt)
-                ORDER BY FUNCTION('HOUR', t.createdAt)
+                WHERE CAST(t.createdAt AS date) = :date
+                GROUP BY hour(t.createdAt)
+                ORDER BY hour(t.createdAt)
             """)
     List<Object[]> getHourlyAnalytics(@Param("date") LocalDate date);
 
     @Query("""
                 SELECT
-                    DATE(t.createdAt),
+                    CAST(t.createdAt AS date),
                     COUNT(t),
-                    SUM(CASE WHEN t.status = 'SERVED' THEN 1 ELSE 0 END)
+                    COALESCE(SUM(CASE WHEN t.status = 'SERVED' THEN 1 ELSE 0 END), 0)
                 FROM Token t
                 WHERE t.createdAt >= :startDate
-                GROUP BY DATE(t.createdAt)
-                ORDER BY DATE(t.createdAt)
+                GROUP BY CAST(t.createdAt AS date)
+                ORDER BY CAST(t.createdAt AS date)
             """)
     List<Object[]> getHistoryAnalytics(@Param("startDate") LocalDateTime startDate);
 }
