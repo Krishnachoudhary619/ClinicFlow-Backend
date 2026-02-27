@@ -2,6 +2,7 @@ package com.clinicflow.backend.auth;
 
 import com.clinicflow.backend.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,5 +20,22 @@ public class AuthController {
     @PostMapping("/refresh")
     public ApiResponse<AuthResponse> refresh(@RequestBody RefreshRequest request) {
         return ApiResponse.success("Token refreshed", authService.refresh(request.getRefreshToken()));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<UserResponse> me(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) {
+            return ApiResponse.failure("User not authenticated", "AUTH_NOT_AUTHENTICATED");
+        }
+
+        UserResponse response = UserResponse.builder()
+                .id(principal.getUserId())
+                .email(principal.getUsername())
+                .role(principal.getRole())
+                .clinicId(principal.getClinicId())
+                .build();
+
+        return ApiResponse.success("User fetched", response);
     }
 }
