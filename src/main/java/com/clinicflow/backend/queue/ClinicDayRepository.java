@@ -8,6 +8,12 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 public interface ClinicDayRepository extends JpaRepository<ClinicDay, Long> {
+    Optional<ClinicDay> findTopByClinicIdAndIsClosedFalseOrderByCreatedAtDesc(Long clinicId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT cd FROM ClinicDay cd WHERE cd.clinic.id = :clinicId AND cd.isClosed = false")
+    Optional<ClinicDay> findActiveClinicDayForUpdate(Long clinicId);
+
     Optional<ClinicDay> findByClinicIdAndDate(Long clinicId, LocalDate date);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

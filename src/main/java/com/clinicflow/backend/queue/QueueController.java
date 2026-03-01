@@ -45,11 +45,11 @@ public class QueueController {
     @PreAuthorize("hasAnyRole('DOCTOR','RECEPTIONIST','ADMIN')")
     public ApiResponse<QueueResponse> serveNext() {
 
-        QueueResponse response = queueService.markCurrentAsServed();
+        QueueServeResult result = queueService.markCurrentAsServed();
 
         return ApiResponse.success(
-                "Token served and next called",
-                response);
+                result.getMessage(),
+                result.getQueue());
     }
 
     @PostMapping("/skip")

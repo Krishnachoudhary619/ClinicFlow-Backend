@@ -26,7 +26,7 @@ public class AnalyticsService {
 
                 ClinicDay today = clinicDayService.getActiveClinicDay(clinicId);
 
-                List<Object[]> queryResult = tokenRepository.getTodayAnalytics(today.getId());
+                List<Object[]> queryResult = tokenRepository.getClinicDayAnalytics(today.getId());
 
                 if (queryResult == null || queryResult.isEmpty()) {
                         log.info("No analytics data found for clinicId: {}", clinicId);

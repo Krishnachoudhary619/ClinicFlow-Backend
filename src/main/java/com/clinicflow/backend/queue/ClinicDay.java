@@ -5,9 +5,10 @@ import com.clinicflow.backend.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "clinic_days", uniqueConstraints = @UniqueConstraint(columnNames = { "clinic_id", "date" }))
+@Table(name = "clinic_days")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,6 +28,8 @@ public class ClinicDay extends BaseEntity {
 
     @Builder.Default
     private Boolean isClosed = false;
+
+    private LocalDateTime closedAt;
 
     @Builder.Default
     @Column(nullable = false)

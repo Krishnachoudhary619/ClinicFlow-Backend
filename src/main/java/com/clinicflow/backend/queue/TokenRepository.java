@@ -54,12 +54,11 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
 
     @Query("""
                 SELECT t FROM Token t
-                WHERE t.clinic.id = :clinicId
-                AND t.clinicDay.date = CURRENT_DATE
+                WHERE t.clinicDay.id = :clinicDayId
                 AND t.cycleNumber = :cycleNumber
                 AND t.tokenNumber = :tokenNumber
             """)
-    Optional<Token> findTodayToken(Long clinicId, Integer cycleNumber, Integer tokenNumber);
+    Optional<Token> findTokenByNumberInClinicDay(Long clinicDayId, Integer cycleNumber, Integer tokenNumber);
 
     @Query("""
                 SELECT t FROM Token t
@@ -84,7 +83,7 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
                 FROM Token t
                 WHERE t.clinicDay.id = :clinicDayId
             """)
-    List<Object[]> getTodayAnalytics(@Param("clinicDayId") Long clinicDayId);
+    List<Object[]> getClinicDayAnalytics(@Param("clinicDayId") Long clinicDayId);
 
     @Query("""
                 SELECT

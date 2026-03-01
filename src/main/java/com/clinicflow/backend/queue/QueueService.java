@@ -21,6 +21,7 @@ public class QueueService {
         private final ClinicRepository clinicRepository;
         private final ClinicDayRepository clinicDayRepository;
         private final TokenRepository tokenRepository;
+        private final ClinicDayService clinicDayService;
 
         @Transactional
         public Token createToken(CreateTokenRequest request) {
@@ -33,19 +34,7 @@ public class QueueService {
                 Clinic clinic = clinicRepository.findById(clinicId)
                                 .orElseThrow(() -> new ApiException("Clinic not found"));
 
-                LocalDate today = LocalDate.now();
-
-                ClinicDay clinicDay = clinicDayRepository
-                                .findByClinicIdAndDate(clinicId, today)
-                                .orElseGet(() -> {
-                                        ClinicDay newDay = ClinicDay.builder()
-                                                        .clinic(clinic)
-                                                        .date(today)
-                                                        .isClosed(false)
-                                                        .currentCycle(1)
-                                                        .build();
-                                        return clinicDayRepository.save(newDay);
-                                });
+                ClinicDay clinicDay = clinicDayService.getActiveClinicDay(clinicId);
 
                 Integer lastTokenNumber = tokenRepository.findLastTokenNumber(clinicDay.getId(),
                                 clinicDay.getCurrentCycle());
@@ -73,11 +62,7 @@ public class QueueService {
 
                 Long clinicId = principal.getClinicId();
 
-                LocalDate today = LocalDate.now();
-
-                ClinicDay clinicDay = clinicDayRepository
-                                .findByClinicIdAndDate(clinicId, today)
-                                .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
+                ClinicDay clinicDay = clinicDayService.getActiveClinicDay(clinicId);
 
                 Token current = tokenRepository.findCurrentCalled(clinicDay.getId(), clinicDay.getCurrentCycle())
                                 .orElse(null);
@@ -92,41 +77,52 @@ public class QueueService {
         }
 
         @Transactional
-        public QueueResponse markCurrentAsServed() {
+        public QueueServeResult markCurrentAsServed() {
 
                 UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext()
                                 .getAuthentication().getPrincipal();
 
                 Long clinicId = principal.getClinicId();
 
-                LocalDate today = LocalDate.now();
+                ClinicDay clinicDay = clinicDayService.getActiveClinicDay(clinicId);
 
-                ClinicDay clinicDay = clinicDayRepository
-                                .findByClinicIdAndDate(clinicId, today)
-                                .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
+                StringBuilder message = new StringBuilder();
 
                 // 1️⃣ Get current CALLED token
                 Optional<Token> currentCalledOpt = tokenRepository.findCurrentCalled(clinicDay.getId(),
                                 clinicDay.getCurrentCycle());
 
+                Token servedToken = null;
                 if (currentCalledOpt.isPresent()) {
-                        Token current = currentCalledOpt.get();
-                        current.setStatus(Token.Status.SERVED);
-                        current.setServedAt(LocalDateTime.now());
-                        tokenRepository.save(current);
+                        servedToken = currentCalledOpt.get();
+                        servedToken.setStatus(Token.Status.SERVED);
+                        servedToken.setServedAt(LocalDateTime.now());
+                        tokenRepository.save(servedToken);
+                        message.append("Token #").append(servedToken.getTokenNumber()).append(" served. ");
                 }
 
-                // 2️⃣ Get next WAITING token
+                // 2️⃣ Get next token (Try WAITING first)
                 List<Token> waiting = tokenRepository.findWaitingTokens(clinicDay.getId(), clinicDay.getCurrentCycle());
+                Token next = null;
 
                 if (!waiting.isEmpty()) {
-                        Token next = waiting.get(0);
+                        next = waiting.get(0);
                         next.setStatus(Token.Status.CALLED);
                         tokenRepository.save(next);
+                        message.append("Called next token #").append(next.getTokenNumber()).append(".");
+                } else {
+                        if (servedToken != null) {
+                                message.append("Queue is now empty.");
+                        } else {
+                                throw new ApiException("No tokens are currently being served or waiting.", "QUEUE_003");
+                        }
                 }
 
-                // 3️⃣ Return updated queue
-                return getCurrentQueue();
+                // 3️⃣ Return updated queue and descriptive message
+                return QueueServeResult.builder()
+                                .queue(getCurrentQueue())
+                                .message(message.toString().trim())
+                                .build();
         }
 
         public PublicTokenStatusResponse getPublicTokenStatus(Long tokenId) {
@@ -169,11 +165,7 @@ public class QueueService {
                                 .getAuthentication().getPrincipal();
 
                 Long clinicId = principal.getClinicId();
-                LocalDate today = LocalDate.now();
-
-                ClinicDay clinicDay = clinicDayRepository
-                                .findByClinicIdAndDate(clinicId, today)
-                                .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
+                ClinicDay clinicDay = clinicDayService.getActiveClinicDay(clinicId);
 
                 // 1️⃣ Find current CALLED token
                 Optional<Token> currentCalledOpt = tokenRepository.findCurrentCalled(clinicDay.getId(),
@@ -208,10 +200,8 @@ public class QueueService {
                                 .getAuthentication().getPrincipal();
 
                 Long clinicId = principal.getClinicId();
-                LocalDate today = LocalDate.now();
-
                 ClinicDay clinicDay = clinicDayRepository
-                                .findByClinicIdAndDateForUpdate(clinicId, today)
+                                .findActiveClinicDayForUpdate(clinicId)
                                 .orElseThrow(() -> new ApiException("No active clinic day", "QUEUE_001"));
 
                 clinicDay.setCurrentCycle(clinicDay.getCurrentCycle() + 1);
@@ -230,9 +220,10 @@ public class QueueService {
                 LocalDate today = LocalDate.now();
 
                 clinicDayRepository
-                                .findByClinicIdAndDateForUpdate(clinicId, today)
+                                .findActiveClinicDayForUpdate(clinicId)
                                 .ifPresent(day -> {
                                         day.setIsClosed(true);
+                                        day.setClosedAt(LocalDateTime.now());
                                         clinicDayRepository.save(day);
                                 });
 
